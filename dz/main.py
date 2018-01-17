@@ -47,10 +47,14 @@ try:
         openpyxl.Workbook().save(xlsx_file_path)
 
     #每个类型的记录对应提取的结果集个数（用于检查记录是否正确）
-    d = {}
+    d_count = {}
     for c in cf.options("count"):
-        d[c] = cf.getint("count", c)
+        d_count[c] = cf.getint("count", c)
 
+    #结果集为数值的位置
+    d_type = {}
+    for t in cf.options("type"):
+        d_type[t] = [int(x) for x in cf.get("type", t).split(',')]
 
     wb = openpyxl.load_workbook(xlsx_file_path)
     fpy = open(txt_file_path, mode='r', encoding='UTF-8')
@@ -61,17 +65,21 @@ try:
             logger.error("记录内容有误，没能找到标题，记录内容为：%s")
             continue
 
-        if not title[0] in d:
+        if not title[0] in d_count:
             logger.error("没能在配置文件：%s 找到对应于标题为：%s 的个数配置",
                          businessconf, title[0])
             continue
 
         #提取记录中的数据并做检查
         values = re.findall(r'\[(.*?)\]', line)
-        if len(values) != d[title[0]]:
+        if len(values) != d_count[title[0]]:
             logger.error("在记录中提取到的数据个数：%s 与配置的个数：%s 不一致，判定记录内容有误：%s",
-                         len(values), d[title[0]], line)
+                         len(values), d_count[title[0]], line)
             continue
+
+        if title[0] in d_type:
+            for t in d_type[title[0]]:
+                values[t] = float(values[t])
 
         logger.info("记录标题：%s, 记录数据：%s",title[0], values)
 
