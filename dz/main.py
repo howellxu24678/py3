@@ -56,7 +56,7 @@ try:
     for t in cf.options("type"):
         d_type[t] = [int(x) for x in cf.get("type", t).split(',')]
 
-    wb = openpyxl.load_workbook(xlsx_file_path)
+    book = openpyxl.load_workbook(xlsx_file_path)
     fpy = open(txt_file_path, mode='r', encoding='UTF-8')
     for line in fpy:
         #每一行有且只有一个标题：审核结果/还款/续期
@@ -83,15 +83,19 @@ try:
 
         logger.info("记录标题：%s, 记录数据：%s",title[0], values)
 
-        if not title[0] in wb.get_sheet_names():
-            wb.create_sheet(title[0])
-        ws = wb.get_sheet_by_name(title[0])
-        ws.append(values)
+        if not title[0] in book.get_sheet_names():
+            book.create_sheet(title[0])
+        sheet = book.get_sheet_by_name(title[0])
 
-    wb.save(xlsx_file_path)
+        if title[0] == '审核结果':
+            formula = '=IF(A{0}="","",COUNTIF($A$2:A{0},TEXT(A{0},"###")))'.format(sheet.max_row + 1)
+            logger.info("formula:%s, max_row:%s", formula, sheet.max_row)
+            values.insert(1, formula)
+        sheet.append(values)
+
+    book.save(xlsx_file_path)
 
 except BaseException as e:
     logger.exception(e)
 
-
-    
+#=IF(A915="","",COUNTIF($A$3:A915,TEXT(A915,"###")))
