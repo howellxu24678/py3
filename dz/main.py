@@ -89,6 +89,8 @@ def write_to_sheet(title, values):
     values_ = copy.copy(values)
     values_.insert(0, '')
     if title == '审核结果':
+        values_.pop(7)
+        #values_.remove(values_[7])
         # 次数
         values_.insert(2, '=IF(B{0}="","",COUNTIF($A$3:B{0},TEXT(B{0},"###")))'.format(sheet.max_row + 1))
         # 手机号码
@@ -101,7 +103,8 @@ def write_to_sheet(title, values):
                           sheet.max_row + 1))
         # 应还总额
         values_.insert(7, '=IF(N{0}="已结清",0,F{0})'.format(sheet.max_row + 1))
-        values_ = values_[0:11]
+        for i in range(5):
+            values_.insert(11, '')
 
     sheet.append(values_)
     logger.debug("写入excel表：%s，数据：%s", title, values_)
@@ -118,7 +121,7 @@ def modify_data(book, title, values):
         #从下往上找到姓名相同的那一行
         if sheet.cell(row=i, column=2).value == values[1]:
             #已还金额增加（还款和续期一致处理）
-            if sheet.cell(row=i, column=13).value is None:
+            if sheet.cell(row=i, column=13).value is None or sheet.cell(row=i, column=13).value == "":
                 sheet.cell(row=i, column=13).value = values[2]
             else:
                 sheet.cell(row=i, column=13).value += values[2]
