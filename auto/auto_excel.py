@@ -14,7 +14,7 @@ import time
 def wait_to_quit():
     print("按回车键结束")
     if input():
-        pass
+        exit()
 
 
 class AutoExcel(object):
@@ -89,7 +89,7 @@ class AutoExcel(object):
 
         except BaseException as e:
             logger.exception(e)
-            return wait_to_quit()
+            raise e
 
 
     def make_the_same_style(self, sheet):
@@ -165,7 +165,7 @@ class AutoExcel(object):
 
         self.make_the_same_style(sheet)
 
-    def find_row_to_update(self, sheet, title):
+    def find_row_to_update(self, sheet, title, values):
         if title not in self._dict_update_sheet_condition['match']:
             logger.error("无法在配置中找到对应标题：%s的更新记录需满足的条件", title)
             return -1
@@ -177,7 +177,7 @@ class AutoExcel(object):
                 row_to_update = i
                 break
 
-        if row_to_update < 0:
+        if row_to_update < 0 or title not in self._dict_update_sheet_condition['break']:
             return row_to_update
 
         # 有可能存在连发2个审核，后带一个还款的情况，再往前搜索直到遇到停止条件
@@ -196,12 +196,30 @@ class AutoExcel(object):
             return
 
         sheet = book.get_sheet_by_name(self._dict_title_update_sheet[title])
-        row_to_update = self.find_row_to_update(sheet, title)
+        row_to_update = self.find_row_to_update(sheet, title, values)
 
         if row_to_update < 1:
-            logger.error("无法找到满足条件需要更新的行，标题：%s, 数据：%s", title, values)
+            logger.error("无法找到满足条件需要更新的行，标题：%s,数据：%s", title, values)
             return
 
+        logger.debug("row_to_update:%s", row_to_update)
+
+        if title not in self._dict_update_sheet_column:
+            logger.error("无法在配置中找到对应标题：%s需要更新的列", title)
+            return
+
+        for k,v in self._dict_update_sheet_column[title].items():
+            cl = sheet.cell(row = row_to_update, column = k + 1)
+            l = v.split(':')
+            op = l[0]
+            index = int(l[1])
+            if op == '=':
+                cl.value = values[index]
+            elif op == '+':
+                if cl.value is None or cl.value == '':
+                    cl.value = values[index]
+                else:
+                    cl.value += values[index]
         # for i in range(sheet.max_row, 1, -1):
         #     # 从下往上找到姓名相同的那一行
         #     if sheet.cell(row=i, column=2).value == values[1]:
