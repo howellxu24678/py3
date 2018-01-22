@@ -46,6 +46,10 @@ class AutoExcel(object):
             for fp in self._cf.options("float_pos"):
                 self._dict_title_float_pos[fp] = [int(x) for x in self._cf.get("float_pos", fp).split(',')]
 
+            # 结果集校验
+            self._dict_check = {}
+            for ch in self._cf.options("check"):
+                self._dict_check[ch] = self._cf.get("check", ch).strip()
 
             # 记录类型及需要追加记录的excel表格名
             self._dict_title_add_sheet = {}
@@ -132,13 +136,17 @@ class AutoExcel(object):
             for t in self._dict_title_float_pos[titles[0]]:
                 values[t] = float(values[t])
 
+        if titles[0] in self._dict_check and not eval(self._dict_check[titles[0]]):
+            logger.error("记录无法通过配置中对标题：%s的校验，记录内容为：%s", titles[0], line)
+            return None, None
+
         return titles[0], values
 
     def add_to_sheet(self, book, title, values):
         logger.info("标题：%s, 提取的数据：%s", title, values)
 
         if title not in self._dict_title_add_sheet:
-            logger.warn("无法在配置中找到对应标题：%s的excel表名配置，将直接使用该标题作为操作的excel表名", title)
+            logger.warning("无法在配置中找到对应标题：%s的excel表名配置，将直接使用该标题作为操作的excel表名", title)
             sheet_name = title
         else:
             sheet_name = self._dict_title_add_sheet[title]
@@ -189,7 +197,6 @@ class AutoExcel(object):
                 break
         return row_to_update
 
-
     def update_sheet(self, book, title, values):
         if title not in self._dict_title_update_sheet:
             logger.debug("标题：%s不在需要更新excel表名的配置中，不需要更新到excel中", title)
@@ -211,8 +218,8 @@ class AutoExcel(object):
         for k,v in self._dict_update_sheet_column[title].items():
             cl = sheet.cell(row = row_to_update, column = k + 1)
             l = v.split(':')
-            op = l[0]
-            index = int(l[1])
+            op = l[0].strip()
+            index = int(l[1].strip())
             if op == '=':
                 cl.value = values[index]
             elif op == '+':
@@ -220,21 +227,6 @@ class AutoExcel(object):
                     cl.value = values[index]
                 else:
                     cl.value += values[index]
-        # for i in range(sheet.max_row, 1, -1):
-        #     # 从下往上找到姓名相同的那一行
-        #     if sheet.cell(row=i, column=2).value == values[1]:
-        #         # 已还金额增加（还款和续期一致处理）
-        #         if sheet.cell(row=i, column=13).value is None or sheet.cell(row=i, column=13).value == "":
-        #             sheet.cell(row=i, column=13).value = values[2]
-        #         else:
-        #             sheet.cell(row=i, column=13).value += values[2]
-        #
-        #         if title == '还款':
-        #             sheet.cell(row=i, column=12).value = values[0]
-        #         elif title == '续期':
-        #             sheet.cell(row=i, column=12).value = values[3]
-        #
-        #         break
 
     def do(self):
         start = time.time()
