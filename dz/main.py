@@ -22,6 +22,7 @@ from openpyxl import *
 import re
 from openpyxl.styles import *
 import copy
+import time
 
 baseconfdir = "config"
 loggingconf = "log.config"
@@ -159,15 +160,18 @@ try:
     for t in cf.options("type"):
         d_type[t] = [int(x) for x in cf.get("type", t).split(',')]
 
+    start = time.time()
     book = load_workbook(xlsx_file_path)
     fpy = open(txt_file_path, mode='r', encoding='UTF-8')
+    line_count = 0
     for line in fpy:
         title, values = get_title_values(line, d_count, d_type)
         write_to_sheet(title, values)
         modify_data(book, title, values)
+        line_count += 1
 
     book.save(xlsx_file_path)
-
+    logger.info("处理%s条记录，耗时%s秒", line_count, round(time.time() - start, 3))
     print("按任意键结束")
     if(input()):
         pass
