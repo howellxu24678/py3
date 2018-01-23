@@ -10,7 +10,6 @@ from openpyxl.styles import *
 import copy
 import time
 
-
 def wait_to_quit():
     print("按回车键结束")
     if input():
@@ -95,7 +94,7 @@ class AutoExcel(object):
             logger.exception(e)
             raise e
 
-
+    #@profile
     def make_the_same_style(self, sheet):
         logger.debug("表名：%s,min_row:%s,max_row:%s,min_column:%s,max_column:%s",
                      sheet.title, sheet.min_row, sheet.max_row, sheet.min_column, sheet.max_column)
@@ -112,6 +111,7 @@ class AutoExcel(object):
             sheet.cell(row=sheet.max_row, column=i).number_format = sheet.cell(row=sheet.max_row - 1,
                                                                                column=i).number_format
 
+    #@profile
     def get_title_values(self, line):
         # 每一行有且只有一个标题：审核结果/还款/续期
         titles = re.findall(r'{0}'.format(self._cf.get("re", "title").strip()), line)
@@ -142,6 +142,7 @@ class AutoExcel(object):
 
         return titles[0], values
 
+    #@profile
     def add_to_sheet(self, book, title, values):
         logger.info("标题：%s, 提取的数据：%s", title, values)
 
@@ -173,6 +174,7 @@ class AutoExcel(object):
 
         self.make_the_same_style(sheet)
 
+    #@profile
     def find_row_to_update(self, sheet, title, values):
         if title not in self._dict_update_sheet_condition['match']:
             logger.error("无法在配置中找到对应标题：%s的更新记录需满足的条件", title)
@@ -197,6 +199,7 @@ class AutoExcel(object):
                 break
         return row_to_update
 
+    #@profile
     def update_sheet(self, book, title, values):
         if title not in self._dict_title_update_sheet:
             logger.debug("标题：%s不在需要更新excel表名的配置中，不需要更新到excel中", title)
@@ -228,6 +231,7 @@ class AutoExcel(object):
                 else:
                     cl.value += values[index]
 
+    #@profile
     def do(self):
         start = time.time()
         book = load_workbook(self._xlsx_file_path)
