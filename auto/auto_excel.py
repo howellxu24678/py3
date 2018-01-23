@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'xujh'
 
+#打包 pyinstaller -F --upx-dir D:\soft\upx391w -i excel_72pxt.ico auto_excel.py
 import os
 import logging.config
 import configparser
