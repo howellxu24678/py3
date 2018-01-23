@@ -237,6 +237,7 @@ class AutoExcel(object):
         for line in txt_lines:
             title, values = self.get_title_values(line)
             logger.debug("title:%s, values:%s", title, values)
+
             if title is None or values is None:
                 logger.error("记录有误，中断本次录入")
                 return wait_to_quit()
