@@ -46,6 +46,7 @@ def group_msg(msg):
             s = "发送者：%s 接受时间：%s 内容：%s" % (msg.member, msg.receive_time, msg.text)
             with open(txt_file_path, 'a', encoding='UTF-8') as fw:
                 fw.write(s)
+                fw.write("\n")
             logger.info(s)
 
 embed()
