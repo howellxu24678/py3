@@ -12,6 +12,8 @@ from openpyxl.styles import *
 import copy
 import time
 
+logger = logging.getLogger()
+
 def wait_to_quit():
     print("按回车键结束")
     if input():
@@ -19,11 +21,9 @@ def wait_to_quit():
 
 
 class AutoExcel(object):
-    def __init__(self, configfile):
+    def __init__(self, cf):
         try:
-            self._cf = configparser.ConfigParser()
-            self._cf.read(os.path.join(os.getcwd(), baseconfdir, configfile), encoding='UTF-8')
-
+            self._cf = cf
             self._txt_file_path = self._cf.get("path", "txt_file_path")
             if not os.path.exists(self._txt_file_path):
                 logger.error("txt文件不存在，文件路径配置为:%s", self._txt_file_path)
@@ -123,7 +123,7 @@ class AutoExcel(object):
 
         if not titles[0] in self._dict_title_values_count:
             logger.error("没能在配置文件：%s 找到对应于标题为：%s 的个数配置",
-                         auto_excel_config, titles[0])
+                         config, titles[0])
             return None, None
 
         # 提取记录中的数据并做检查
@@ -258,15 +258,19 @@ class AutoExcel(object):
 
 
 if __name__ == '__main__':
-    baseconfdir = "config"
+    baseconfdir = "./config"
     loggingconf = "log.config"
-    auto_excel_config = "auto.ini"
+    config = "auto.ini"
 
     try:
+        print(os.getcwd())
         logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
         logger = logging.getLogger()
 
-        auto_excel = AutoExcel(auto_excel_config)
+        cf = configparser.ConfigParser()
+        cf.read(os.path.join(os.getcwd(), baseconfdir, config), encoding='UTF-8')
+
+        auto_excel = AutoExcel(cf)
         auto_excel.do()
     except BaseException as e:
         logger.exception(e)
