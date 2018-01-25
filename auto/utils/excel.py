@@ -20,7 +20,7 @@ def wait_to_quit():
         exit()
 
 
-class AutoExcel(object):
+class Excel(object):
     def __init__(self, cf):
         try:
             self._cf = cf
@@ -270,7 +270,7 @@ if __name__ == '__main__':
         cf = configparser.ConfigParser()
         cf.read(os.path.join(os.getcwd(), baseconfdir, config), encoding='UTF-8')
 
-        auto_excel = AutoExcel(cf)
+        auto_excel = Excel(cf)
         auto_excel.do()
     except BaseException as e:
         logger.exception(e)
