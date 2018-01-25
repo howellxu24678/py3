@@ -15,6 +15,13 @@ def wait_to_quit():
     if input():
         exit()
 
+def save(msg):
+    s = "发送者：%s 接受时间：%s 内容：%s" % (msg.member, msg.receive_time, msg.text)
+    with open(txt_file_path, 'a', encoding='UTF-8') as fw:
+        fw.write(s)
+        fw.write("\n")
+    logger.info(s)
+
 try:
     logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
     logger = logging.getLogger()
@@ -41,12 +48,11 @@ except BaseException as e:
 
 @bot.register(groups_list, TEXT, except_self=False)
 def group_msg(msg):
-    for f in focus:
-        if msg.text.count(f) > 0:
-            s = "发送者：%s 接受时间：%s 内容：%s" % (msg.member, msg.receive_time, msg.text)
-            with open(txt_file_path, 'a', encoding='UTF-8') as fw:
-                fw.write(s)
-                fw.write("\n")
-            logger.info(s)
+    if len(focus) < 1:
+        save(msg)
+    else:
+        for f in focus:
+            if msg.text.count(f) > 0:
+                save(msg)
 
 embed()
