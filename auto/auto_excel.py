@@ -2,6 +2,7 @@
 __author__ = 'xujh'
 
 #打包 pyinstaller -F --upx-dir D:\soft\upx391w -i excel_72pxt.ico auto_excel.py
+#pip install PyQt5 http://pypi.douban.com/simple --trusted-host=pypi.douban.com
 import os
 import logging.config
 import configparser
@@ -256,11 +257,11 @@ class AutoExcel(object):
         return wait_to_quit()
 
 
-baseconfdir = "config"
-loggingconf = "log.config"
-auto_excel_config = "auto_excel.ini"
-
 if __name__ == '__main__':
+    baseconfdir = "config"
+    loggingconf = "log.config"
+    auto_excel_config = "auto.ini"
+
     try:
         logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
         logger = logging.getLogger()
