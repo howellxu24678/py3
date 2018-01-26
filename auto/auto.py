@@ -16,7 +16,14 @@ try:
     cf = configparser.ConfigParser()
     cf.read(os.path.join(os.getcwd(), baseconfdir, config), encoding='UTF-8')
 
-    auto_excel = Excel(cf)
-    auto_excel.do()
+    # auto_excel = Excel(cf)
+    # auto_excel.load_from_txt()
+
+
+    # wx = Wx(cf)
+    # embed()
+
+    ch = Check(cf)
+
 except BaseException as e:
     logger.exception(e)

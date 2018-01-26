@@ -37,6 +37,9 @@ class Excel(object):
                     os.mkdir(dirname)
                 Workbook().save(self._xlsx_file_path)
 
+            self._title_re = r'{}'.format(self._cf.get("re", "title").strip())
+            self._values_re = r'{}'.format(self._cf.get("re", "values").strip())
+
             # 每个类型的记录对应提取的结果集个数（用于检查记录是否正确）
             self._dict_title_values_count = {}
             for vc in self._cf.options("values_count"):
@@ -116,7 +119,7 @@ class Excel(object):
     #@profile
     def get_title_values(self, line):
         # 每一行有且只有一个标题：审核结果/还款/续期
-        titles = re.findall(r'{0}'.format(self._cf.get("re", "title").strip()), line)
+        titles = re.findall(self._title_re, line)
         if len(titles) != 1:
             logger.error("记录内容有误，没能找到标题，记录内容为：%s")
             return None, None
@@ -127,7 +130,7 @@ class Excel(object):
             return None, None
 
         # 提取记录中的数据并做检查
-        values = re.findall(r'{0}'.format(self._cf.get("re", "values").strip()), line)
+        values = re.findall(self._values_re, line)
         if len(values) != self._dict_title_values_count[titles[0]]:
             logger.error("在记录中提取到的数据个数：%s 与配置的个数：%s 不一致，判定记录内容有误：%s",
                          len(values), self._dict_title_values_count[titles[0]], line)
@@ -234,7 +237,7 @@ class Excel(object):
                     cl.value += values[index]
 
     #@profile
-    def do(self):
+    def load_from_txt(self):
         start = time.time()
         book = load_workbook(self._xlsx_file_path)
         txt_lines = open(self._txt_file_path, mode='r', encoding='UTF-8')
@@ -271,7 +274,7 @@ if __name__ == '__main__':
         cf.read(os.path.join(os.getcwd(), baseconfdir, config), encoding='UTF-8')
 
         auto_excel = Excel(cf)
-        auto_excel.do()
+        auto_excel.load_from_txt()
     except BaseException as e:
         logger.exception(e)
         wait_to_quit()
