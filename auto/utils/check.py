@@ -31,38 +31,43 @@ class Check(object):
                 d[type_setting[0]] = [int(x) for x in type_setting[1].split(',')]
             self._dict_title_type_pos[fp] = d
 
-
         # 结果集校验
         self._dict_check = {}
         for ch in self._cf.options("check"):
             self._dict_check[ch] = self._cf.get("check", ch).strip()
 
     def get_title_values(self, line):
+        rtn_str = str()
         # 每一行有且只有一个标题：审核结果/还款/续期
         titles = re.findall(self._title_re, line)
         if len(titles) != 1:
-            logger.error("记录内容有误，没能找到标题，记录内容为：%s")
-            return None, None
+            rtn_str = "记录内容有误，找到的标题个数不为1，记录内容为：%s" % (line)
+            logger.error(rtn_str)
+            return None, None, rtn_str
 
         if not titles[0] in self._dict_title_values_count:
-            logger.error("没能在配置文件找到对应于标题为：%s 的个数配置", titles[0])
-            return None, None
+            rtn_str = "没能在配置文件找到对应于标题为：%s 的应提取数据个数配置" % (titles[0])
+            logger.error(rtn_str)
+            return None, None, rtn_str
 
         # 提取记录中的数据并做检查
         values = re.findall(self._values_re, line)
         if len(values) != self._dict_title_values_count[titles[0]]:
-            logger.error("在记录中提取到的数据个数：%s 与配置的个数：%s 不一致，判定记录内容有误：%s",
-                         len(values), self._dict_title_values_count[titles[0]], line)
-            return None, None
+            rtn_str = "在记录中提取到的数据个数：%s 与配置的应提取个数：%s 不一致，判定有误，记录内容：%s" % \
+            (len(values), self._dict_title_values_count[titles[0]], line)
+            logger.error(rtn_str)
+            return None, None, rtn_str
 
         #数值类型修正
         if titles[0] in self._dict_title_type_pos:
-            for t in self._dict_title_type_pos[titles[0]]:
-                values[t] = float(values[t])
+            for k,v in self._dict_title_type_pos[titles[0]].items():
+                for pos in v:
+                    values[pos] = eval(k + "({})".format(values[pos]))
 
         if titles[0] in self._dict_check and not eval(self._dict_check[titles[0]]):
-            logger.error("记录无法通过配置文件对标题：%s的校验，记录内容为：%s", titles[0], line)
-            return None, None
+            rtn_str = "记录无法通过配置文件对标题：%s的校验，记录内容：%s" % (titles[0], line)
+            logger.error(rtn_str)
+            return None, None, rtn_str
 
-        return titles[0], values
+        return titles[0], values, rtn_str
 

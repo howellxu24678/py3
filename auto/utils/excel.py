@@ -2,32 +2,33 @@
 __author__ = 'xujh'
 
 #打包 pyinstaller -F --upx-dir D:\soft\upx391w -i excel_72pxt.ico auto_excel.py
-#pip install PyQt5 http://pypi.douban.com/simple --trusted-host=pypi.douban.com
 import os
 import logging.config
 import configparser
 from openpyxl import *
 import re
 from openpyxl.styles import *
-import copy
+#import copy
 import time
+from .check import *
 
 logger = logging.getLogger()
 
-def wait_to_quit():
-    print("按回车键结束")
-    if input():
-        exit()
+# def wait_to_quit():
+#     print("按回车键结束")
+#     if input():
+#         exit()
 
 
 class Excel(object):
-    def __init__(self, cf):
+    def __init__(self, cf, check):
         try:
             self._cf = cf
+            self._check = check
             self._txt_file_path = self._cf.get("path", "txt_file_path")
             if not os.path.exists(self._txt_file_path):
                 logger.error("txt文件不存在，文件路径配置为:%s", self._txt_file_path)
-                return wait_to_quit()
+                return
 
             self._xlsx_file_path = self._cf.get("path", "xlsx_file_path")
             if not os.path.exists(self._xlsx_file_path):
@@ -37,23 +38,7 @@ class Excel(object):
                     os.mkdir(dirname)
                 Workbook().save(self._xlsx_file_path)
 
-            self._title_re = r'{}'.format(self._cf.get("re", "title").strip())
-            self._values_re = r'{}'.format(self._cf.get("re", "values").strip())
-
-            # 每个类型的记录对应提取的结果集个数（用于检查记录是否正确）
-            self._dict_title_values_count = {}
-            for vc in self._cf.options("values_count"):
-                self._dict_title_values_count[vc] = self._cf.getint("values_count", vc)
-
-            # 结果集为数值的位置
-            self._dict_title_float_pos = {}
-            for fp in self._cf.options("float_pos"):
-                self._dict_title_float_pos[fp] = [int(x) for x in self._cf.get("float_pos", fp).split(',')]
-
-            # 结果集校验
-            self._dict_check = {}
-            for ch in self._cf.options("check"):
-                self._dict_check[ch] = self._cf.get("check", ch).strip()
+            self._book = load_workbook(self._xlsx_file_path)
 
             # 记录类型及需要追加记录的excel表格名
             self._dict_title_add_sheet = {}
@@ -117,38 +102,7 @@ class Excel(object):
                                                                                column=i).number_format
 
     #@profile
-    def get_title_values(self, line):
-        # 每一行有且只有一个标题：审核结果/还款/续期
-        titles = re.findall(self._title_re, line)
-        if len(titles) != 1:
-            logger.error("记录内容有误，没能找到标题，记录内容为：%s")
-            return None, None
-
-        if not titles[0] in self._dict_title_values_count:
-            logger.error("没能在配置文件：%s 找到对应于标题为：%s 的个数配置",
-                         config, titles[0])
-            return None, None
-
-        # 提取记录中的数据并做检查
-        values = re.findall(self._values_re, line)
-        if len(values) != self._dict_title_values_count[titles[0]]:
-            logger.error("在记录中提取到的数据个数：%s 与配置的个数：%s 不一致，判定记录内容有误：%s",
-                         len(values), self._dict_title_values_count[titles[0]], line)
-            return None, None
-
-        #数值类型修正
-        if titles[0] in self._dict_title_float_pos:
-            for t in self._dict_title_float_pos[titles[0]]:
-                values[t] = float(values[t])
-
-        if titles[0] in self._dict_check and not eval(self._dict_check[titles[0]]):
-            logger.error("记录无法通过配置中对标题：%s的校验，记录内容为：%s", titles[0], line)
-            return None, None
-
-        return titles[0], values
-
-    #@profile
-    def add_to_sheet(self, book, title, values):
+    def add_to_sheet(self, title, values):
         logger.info("标题：%s, 提取的数据：%s", title, values)
 
         if title not in self._dict_title_add_sheet:
@@ -157,9 +111,9 @@ class Excel(object):
         else:
             sheet_name = self._dict_title_add_sheet[title]
 
-        if sheet_name not in book.get_sheet_names():
-            book.create_sheet(sheet_name)
-        sheet = book.get_sheet_by_name(sheet_name)
+        if sheet_name not in self._book.sheetnames:
+            self._book.create_sheet(sheet_name)
+        sheet = self._book[sheet_name]
         logger.debug("表名：%s, 维度：%s", sheet_name, sheet.dimensions)
 
         if title not in self._dict_add_sheet_column:
@@ -205,12 +159,12 @@ class Excel(object):
         return row_to_update
 
     #@profile
-    def update_sheet(self, book, title, values):
+    def update_sheet(self, title, values):
         if title not in self._dict_title_update_sheet:
             logger.debug("标题：%s不在需要更新excel表名的配置中，不需要更新到excel中", title)
             return
 
-        sheet = book.get_sheet_by_name(self._dict_title_update_sheet[title])
+        sheet = self._book.get_sheet_by_name(self._dict_title_update_sheet[title])
         row_to_update = self.find_row_to_update(sheet, title, values)
 
         if row_to_update < 1:
@@ -236,45 +190,55 @@ class Excel(object):
                 else:
                     cl.value += values[index]
 
+    def upsert_by_line(self, line):
+        title, values, rtn_str = self._check.get_title_values(line)
+        logger.debug("title:%s, values:%s, rtn_str:%s", title, values, rtn_str)
+
+        if title is None or values is None:
+            logger.error("记录有误，中断本次录入")
+            return False
+
+        self.add_to_sheet(title, values)
+        self.update_sheet(title, values)
+        return True
+
     #@profile
-    def load_from_txt(self):
+    def upsert_from_txt(self):
         start = time.time()
-        book = load_workbook(self._xlsx_file_path)
         txt_lines = open(self._txt_file_path, mode='r', encoding='UTF-8')
 
         line_count = 0
         for line in txt_lines:
-            title, values = self.get_title_values(line)
-            logger.debug("title:%s, values:%s", title, values)
-
-            if title is None or values is None:
-                logger.error("记录有误，中断本次录入")
-                return wait_to_quit()
-
-            self.add_to_sheet(book, title, values)
-            self.update_sheet(book, title, values)
+            if not self.upsert_by_line(line):
+                break
             line_count += 1
 
-        book.save(self._xlsx_file_path)
+        self._book.save(self._xlsx_file_path)
         logger.info("处理%s条记录，耗时%s秒", line_count, round(time.time() - start, 3))
-        return wait_to_quit()
+        #return wait_to_quit()
+
+    def save(self):
+        self._book.save(self._xlsx_file_path)
+    # def upsert_from_line(self, line):
+    #     if self.upsert_by_line(line):
+    #         self._book.save(self._xlsx_file_path)
 
 
-if __name__ == '__main__':
-    baseconfdir = "./config"
-    loggingconf = "log.config"
-    config = "auto.ini"
-
-    try:
-        print(os.getcwd())
-        logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
-        logger = logging.getLogger()
-
-        cf = configparser.ConfigParser()
-        cf.read(os.path.join(os.getcwd(), baseconfdir, config), encoding='UTF-8')
-
-        auto_excel = Excel(cf)
-        auto_excel.load_from_txt()
-    except BaseException as e:
-        logger.exception(e)
-        wait_to_quit()
+# if __name__ == '__main__':
+#     baseconfdir = "./config"
+#     loggingconf = "log.config"
+#     config = "auto.ini"
+#
+#     try:
+#         print(os.getcwd())
+#         logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
+#         logger = logging.getLogger()
+#
+#         cf = configparser.ConfigParser()
+#         cf.read(os.path.join(os.getcwd(), baseconfdir, config), encoding='UTF-8')
+#
+#         auto_excel = Excel(cf)
+#         auto_excel.upsert_from_txt()
+#     except BaseException as e:
+#         logger.exception(e)
+#         wait_to_quit()
