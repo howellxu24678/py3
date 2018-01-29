@@ -28,7 +28,7 @@ class Excel(object):
             self._txt_file_path = self._cf.get("path", "txt_file_path")
             if not os.path.exists(self._txt_file_path):
                 logger.error("txt文件不存在，文件路径配置为:%s", self._txt_file_path)
-                return
+                raise IOError
 
             self._xlsx_file_path = self._cf.get("path", "xlsx_file_path")
             if not os.path.exists(self._xlsx_file_path):
@@ -202,9 +202,14 @@ class Excel(object):
         self.update_sheet(title, values)
         return True
 
+    def upsert_by_values(self, title, values):
+        self.add_to_sheet(title, values)
+        self.update_sheet(title, values)
+
     #@profile
     def upsert_from_txt(self):
         start = time.time()
+        logger.info("将读取txt文件：%s，并导入到excel文件中：%s", self._txt_file_path, self._xlsx_file_path)
         txt_lines = open(self._txt_file_path, mode='r', encoding='UTF-8')
 
         line_count = 0

@@ -3,22 +3,22 @@ __author__ = 'xujh'
 
 from wxpy import *
 import logging.config
-import configparser
-import os
-#from wxpy.api.messages import MessageConfig
-
 
 logger = logging.getLogger()
 
+
 class Wx(object):
-    def __init__(self, cf):
+    def __init__(self, cf, check):
         try:
-            self._cf = cf
+            #self._cf = cf
+            self._check = check
+
             group_names = cf.get("wx", "group_names").strip().split(",")
-            self._focus = cf.get("wx", "focus").strip().split(",")
+            self._focus_words = cf.get("wx", "focus_words").strip().split(",")
             self._txt_file_path = cf.get("wx", "txt_file_path").strip()
 
-            self._bot = Bot(cache_path=True, login_callback=self.login_call, logout_callback=Wx.logout_call)
+
+            self._bot = Bot(cache_path=True, login_callback=Wx.login_call, logout_callback=Wx.logout_call)
             all_groups = self._bot.groups()
             logger.debug("所在的群有：%s", all_groups)
 
@@ -36,35 +36,18 @@ class Wx(object):
         except BaseException as e:
             logger.exception(e)
 
-
-    def login_call(self):
+    @staticmethod
+    def login_call():
         logger.info("login_success")
 
     @staticmethod
     def logout_call():
         logger.info("logout_success")
 
-    def focus_msg(self, msg):
-        try:
-            self.save_to_file(msg)
-
-            if len(self._focus) > 0:
-                for f in self._focus:
-                    if f and msg.text.count(f) > 0:
-                        Wx.do_reply(msg, "已收到", True)
-        except BaseException as e:
-            logger.exception(e)
-
-    def save_to_file(self, msg):
-        s = "发送者：%s 接受时间：%s 内容：%s" % (msg.member, msg.receive_time, msg.text)
-        with open(self._txt_file_path, 'a', encoding='UTF-8') as fw:
-            fw.write(s)
-            fw.write("\n")
-        logger.info(s)
-
     @staticmethod
     def do_reply(msg, text, at_member=False):
 
+        ret = str()
         if at_member:
             if len(msg.chat) > 2 and msg.member.name:
                 ret = '@{} {}'.format(
@@ -75,6 +58,32 @@ class Wx(object):
 
         logger.info("机器人回复的消息:%s", ret)
         msg.reply(ret)
+
+    def save_to_file(self, msg):
+        s = "发送者：%s 接受时间：%s 内容：%s" % (msg.member, msg.receive_time, msg.text)
+        with open(self._txt_file_path, 'a', encoding='UTF-8') as fw:
+            fw.write(s)
+            fw.write("\n")
+        logger.info(s)
+
+    def focus_msg(self, msg):
+        try:
+            # if len(self._focus_words) < 1:
+            #     return
+            for f in self._focus_words:
+                if not f or msg.text.count(f) < 1:
+                    return
+
+                title, values, rtn_str = self._check.get_title_values(msg.text)
+                if not title or not values:
+                    return Wx.do_reply(msg, rtn_str, True)
+
+                Wx.do_reply(msg, "已收到", True)
+
+                self.save_to_file(msg)
+
+        except BaseException as e:
+            logger.exception(e)
 
 '''
 文件传输助手发送消息

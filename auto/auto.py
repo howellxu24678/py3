@@ -1,40 +1,109 @@
 # -*- coding: utf-8 -*-
 __author__ = 'xujh'
-
+#打包 pyinstaller -F --upx-dir D:\soft\upx391w -i edit_128px.ico auto.py
 import logging.config
 import configparser
-#from utils import *
 import utils
 import os
 
-baseconfdir = "./config"
+baseconfdir = "config"
 loggingconf = "log.config"
 config = "auto.ini"
 
 logger = logging.getLogger()
+
+ch_count = 40
+
+def tips():
+    print()
+    print("{}".format("-" * ch_count))
+    print('1：微信机器人监听并保存消息')
+    print('2：批量记录导入到excel表格中')
+    print('3：统计')
+    print('q：退出')
+    print("{}".format("-" * ch_count))
+    print()
+
+
+def wx_config():
+    print()
+    print("{}".format("#" * ch_count))
+    print("将开启微信机器人记录消息")
+    print()
+    print("关注的群：{}".format(cf.get("wx", "group_names").strip().split(",")))
+    print("关注的词组：{}".format(cf.get("wx", "focus_words").strip().split(",")))
+    print("写入的文件目录：{}".format(cf.get("wx", "txt_file_path").strip()))
+    print("{}".format("#" * ch_count))
+    print()
+
+
+def excel_config():
+    print()
+    print("{}".format("#" * ch_count))
+    print("将开启批量记录导入到excel表格中")
+    print()
+    print("txt文件目录：{}".format(cf.get("path", "txt_file_path")))
+    print("excel文件目录：{}".format(cf.get("path", "xlsx_file_path")))
+    print("{}".format("#" * ch_count))
+    print()
+
+
+def confirm():
+    cfm = input("确认以上信息无误开始处理？ \n"
+                "(如有误请按n并修改相应配置再次选择)[y/n]")
+
+    if cfm == 'y':
+        return True
+    else:
+        return False
 
 try:
     logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
     logger = logging.getLogger()
 
     cf = configparser.ConfigParser()
-    cf.read(os.path.join(os.getcwd(), baseconfdir, config), encoding='UTF-8')
 
-    # auto_excel = Excel(cf)
-    # auto_excel.load_from_txt()
+    while(True):
+        tips()
 
+        choice = input('请输入你的选择：')
+        if choice == 'q':
+            os._exit(0)
 
-    # wx = Wx(cf)
-    # embed()
+        if not choice.isdigit():
+            print("输入必须为数字，请重新输入")
+            continue
 
-    ch = utils.Check(cf)
-    excel = utils.Excel(cf, ch)
-    excel.upsert_by_line("【审核结果】借款人[张三]。合同金额[1200]元，到账金额[1000]元，期限[10]天，借款日期[2018/01/16]，还款日期[2018/01/26]，到期还款金额[1200]元，逾期管理费[30]元/天，随时可以提前还款，提前还款不收取违约金。")
-    excel.upsert_by_line("【还款】[2018.01.19]收到[张三]还款[1500]元。")
-    excel.upsert_by_line("【续期】[2018.01.17]收到[张三]续期[200]元，还款日期更改为[2018.02.06]。")
-    excel.save()
-    #title, values, rtn_str = ch.get_title_values("【审核结果】借款人[张三]。合同金额[1200]元，到账金额[1000]元，期限[10]天，借款日期[2018/01/16]，还款日期[2018/01/26]，到期还款金额[1200]元，逾期管理费[30]元/天，随时可以提前还款，提前还款不收取违约金。")
-    #logger.info("title:%s, values:%s, rtn_str:%s", title, values, rtn_str)
+        choice_int = int(choice)
+        if choice_int < 1 or choice_int > 3:
+            print("数字范围有误，请重新输入")
+            continue
+
+        cf.read(os.path.join(os.getcwd(), baseconfdir, config), encoding='UTF-8')
+        #微信自动保存为文本文件
+        if choice_int == 1:
+            wx_config()
+
+            if confirm():
+                ch = utils.Check(cf)
+                wx = utils.Wx(cf, ch)
+                utils.embed()
+            else:
+                continue
+
+        #记录导入到excel表格中
+        elif choice_int == 2:
+            excel_config()
+
+            if confirm():
+                ch = utils.Check(cf)
+                excel = utils.Excel(cf, ch)
+                excel.upsert_from_txt()
+            else:
+                continue
+        #统计
+        elif choice_int == 3:
+            pass
 
 except BaseException as e:
     logger.exception(e)
