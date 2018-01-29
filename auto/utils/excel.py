@@ -10,7 +10,7 @@ import re
 from openpyxl.styles import *
 #import copy
 import time
-from .check import *
+#from .check import *
 
 logger = logging.getLogger()
 
@@ -136,7 +136,7 @@ class Excel(object):
     #@profile
     def find_row_to_update(self, sheet, title, values):
         if title not in self._dict_update_sheet_condition['match']:
-            logger.error("无法在配置中找到对应标题：%s的更新记录需满足的条件", title)
+            #logger.error("无法在配置中找到对应标题：%s的更新记录需满足的条件", title)
             return -1
 
         row_to_update = -1
@@ -161,21 +161,21 @@ class Excel(object):
     #@profile
     def update_sheet(self, title, values):
         if title not in self._dict_title_update_sheet:
-            logger.debug("标题：%s不在需要更新excel表名的配置中，不需要更新到excel中", title)
-            return
+            logger.debug("标题为：%s 的记录不需要做更新操作", title)
+            return True
 
         sheet = self._book.get_sheet_by_name(self._dict_title_update_sheet[title])
         row_to_update = self.find_row_to_update(sheet, title, values)
 
         if row_to_update < 1:
             logger.error("无法找到满足条件需要更新的行，标题：%s,数据：%s", title, values)
-            return
+            return False
 
         logger.debug("row_to_update:%s", row_to_update)
 
         if title not in self._dict_update_sheet_column:
             logger.error("无法在配置中找到对应标题：%s需要更新的列", title)
-            return
+            return False
 
         for k,v in self._dict_update_sheet_column[title].items():
             cl = sheet.cell(row = row_to_update, column = k + 1)
@@ -189,6 +189,7 @@ class Excel(object):
                     cl.value = values[index]
                 else:
                     cl.value += values[index]
+        return True
 
     def upsert_by_line(self, line):
         title, values, rtn_str = self._check.get_title_values(line)
@@ -199,7 +200,8 @@ class Excel(object):
             return False
 
         self.add_to_sheet(title, values)
-        self.update_sheet(title, values)
+        if not self.update_sheet(title, values):
+            return False
         return True
 
     def upsert_by_values(self, title, values):

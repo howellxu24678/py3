@@ -3,7 +3,6 @@ __author__ = 'xujh'
 #打包 pyinstaller -F --upx-dir D:\soft\upx391w -i edit_128px.ico auto.py
 import logging.config
 import configparser
-import utils
 import os
 
 baseconfdir = "config"
@@ -85,9 +84,11 @@ try:
             wx_config()
 
             if confirm():
-                ch = utils.Check(cf)
-                wx = utils.Wx(cf, ch)
-                utils.embed()
+                from utils.check import Check
+                from utils.wx import Wx
+                ch = Check(cf)
+                wx = Wx(cf, ch)
+                wx.embed()
             else:
                 continue
 
@@ -96,8 +97,10 @@ try:
             excel_config()
 
             if confirm():
-                ch = utils.Check(cf)
-                excel = utils.Excel(cf, ch)
+                from utils.check import Check
+                from utils.excel import Excel
+                ch = Check(cf)
+                excel = Excel(cf, ch)
                 excel.upsert_from_txt()
             else:
                 continue
