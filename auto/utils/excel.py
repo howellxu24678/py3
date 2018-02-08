@@ -217,7 +217,7 @@ class Excel(object):
         line_count = 0
         for line in txt_lines:
             if not self.upsert_by_line(line):
-                break
+                return
             line_count += 1
 
         self._book.save(self._xlsx_file_path)

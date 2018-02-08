@@ -21,6 +21,8 @@ df = df.drop(0)
 df['应还日期'] = df['应还日期'].map(lambda x: x.strftime("%Y/%m/%d") if not isinstance(x, str) and isinstance(x, datetime.datetime) else x )
 df['实还日期'] = df['实还日期'].map(lambda x: x.strftime("%Y/%m/%d") if not isinstance(x, str) and isinstance(x, datetime.datetime) else x )
 
+df['应还日期'] = df['应还日期'].map(lambda x: datetime.datetime.strptime(x, "%Y/%m/%d") if isinstance(x, str) else x)
+
 dc = df[df['实还日期'] > df['应还日期']]['姓名'].groupby(df['姓名']).count()
 dc.rank()
 dc1 = dc[dc > 1]
