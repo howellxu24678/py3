@@ -88,7 +88,7 @@ try:
                 from utils.wx import Wx
                 ch = Check(cf)
                 wx = Wx(cf, ch)
-                wx.embed()
+                wx.embed_()
             else:
                 continue
 

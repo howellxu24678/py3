@@ -85,6 +85,9 @@ class Wx(object):
         except BaseException as e:
             logger.exception(e)
 
+    def embed_(self):
+        embed()
+
 '''
 文件传输助手发送消息
 _bot.file_helper.send('test')
