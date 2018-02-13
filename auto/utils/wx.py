@@ -72,7 +72,7 @@ class Wx(object):
             #     return
             for f in self._focus_words:
                 if not f or msg.text.count(f) < 1:
-                    return
+                    continue
 
                 title, values, rtn_str = self._check.get_title_values(msg.text)
                 if not title or not values:
