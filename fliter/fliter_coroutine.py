@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 import tushare as ts
 import threading
 import asyncio
+import pandas as pd
 
 start_date = '2014-12-31'
 #start_date = '2018-06-14'
@@ -23,10 +24,12 @@ logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
 logger = logging.getLogger()
 
 
-async def async_get_k_data(_code):
+def async_get_k_data(_future, _code):
     try:
         logger.info("code:%s", _code)
-        return ts.get_k_data(_code, start=start_date)
+        #df = ts.get_k_data(_code, start=start_date)
+        df = pd.DataFrame()
+        _future.set_result(df)
     except BaseException as e:
         logger.exception(e)
 
@@ -61,7 +64,11 @@ async def async_op_df_k1d(_df_k1d):
 
 
 async def getk1d_to_db(_engine, _code):
-    df_k1d = await async_get_k_data(_code)
+    loop = asyncio.get_event_loop()
+    future = loop.create_future()
+    future._loop.call_soon(async_get_k_data, future, _code)
+
+    df_k1d = await future
     await async_op_df_k1d(df_k1d)
     await async_to_sql(df_k1d, 'k1d', _engine)
 

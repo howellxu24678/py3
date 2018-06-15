@@ -7,6 +7,15 @@ import asyncio
 import random
 import time
 
+@asyncio.coroutine
+def test():
+    #await time.sleep(random.randint(1, 5))
+
+    for i in range(1, 100000):
+        yield
+        pow(i, i, i)
+
+
 async def hello():
     print('Hello world!')
     await asyncio.sleep(2)
@@ -20,8 +29,7 @@ async def hello222(_x):
 async def somework(_x):
     print('start doing job... %d' % _x)
     await asyncio.sleep(random.randint(1,5))
-    time.sleep(random.randint(1,5))
-    yield
+    await test()
     print("hi, I've done the job %d" % _x )
     return("hi, I've done the job %d" % _x)
 
