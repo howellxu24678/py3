@@ -17,11 +17,16 @@ async def hello222(_x):
     result = await somework(_x)
     print('Hello again!222,result:%s %d'%(result, _x))
 
+@asyncio.coroutine
+def sleep(delay):
+    yield
+    time.sleep(1)
+
 async def somework(_x):
     print('start doing job... %d' % _x)
-    await asyncio.sleep(random.randint(1,5))
-    time.sleep(random.randint(1,5))
-    yield
+    #await asyncio.sleep(random.randint(1,5))
+    await sleep(random.randint(1,5))
+
     print("hi, I've done the job %d" % _x )
     return("hi, I've done the job %d" % _x)
 
