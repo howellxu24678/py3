@@ -14,7 +14,7 @@ start_date = '2014-12-31'
 #start_date = '2018-06-14'
 baseconfdir = "config"
 loggingconf = "logging.config"
-db_conn = 'sqlite:///test_cor.db'
+db_conn = 'sqlite:///test_cor_ttt.db'
 
 log_path = os.path.join(os.getcwd(), 'log')
 if not os.path.isdir(log_path):
@@ -27,8 +27,8 @@ logger = logging.getLogger()
 def async_get_k_data(_future, _code):
     try:
         logger.info("code:%s", _code)
-        #df = ts.get_k_data(_code, start=start_date)
-        df = pd.DataFrame()
+        df = ts.get_k_data(_code, start=start_date)
+        #df = pd.DataFrame()
         _future.set_result(df)
     except BaseException as e:
         logger.exception(e)

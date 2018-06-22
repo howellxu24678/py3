@@ -7,12 +7,23 @@ import logging.config
 from sqlalchemy import create_engine
 import tushare as ts
 import multiprocessing
+import pandas as pd
 
+start_date = '2014-12-31'
+#start_date = '2018-06-19'
+baseconfdir = "config"
+loggingconf = "logging.config"
+db_conn = 'sqlite:///test_multi.db'
 
+log_path = os.path.join(os.getcwd(), 'log')
+if not os.path.isdir(log_path):
+    os.mkdir(log_path)
 
-def getk1d_to_sql(_code):
+logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
+logger = logging.getLogger()
+
+def getk1d(_code):
     logger.info("code:%s", _code)
-
     df_k1d = ts.get_k_data(_code, start=start_date)
     if len(df_k1d) < 1:
         return
@@ -22,33 +33,18 @@ def getk1d_to_sql(_code):
     df_k1d.insert(0, 'code', code)
 
     df_k1d['changeperc'] = round((df_k1d['close'] - df_k1d['close'].shift(1)) / df_k1d['close'].shift(1) * 100, 2)
-    # _df.reset_index(inplace=True)
     df_k1d.drop(df_k1d.index.tolist()[0], inplace=True)
     df_k1d.set_index(['code', 'date'], inplace=True)
-    # _df.drop(['index'], inplace=True)
-    df_k1d.to_sql('k1d', engine, if_exists='append')
+    return df_k1d
+    #df_k1d.to_sql('k1d', engine, if_exists='append')
 
 
 def init():
-    global start_date
-    start_date = '2014-12-31'
-    global baseconfdir
-    baseconfdir = "config"
-    global loggingconf
-    loggingconf = "logging.config"
-    global db_conn
-    db_conn = 'sqlite:///test_multi.db'
+    pass
 
-    log_path = os.path.join(os.getcwd(), 'log')
-    if not os.path.isdir(log_path):
-        os.mkdir(log_path)
 
-    logging.config.fileConfig(os.path.join(os.getcwd(), baseconfdir, loggingconf))
-    global logger
-    logger = logging.getLogger()
-
-    global engine
-    engine = create_engine(db_conn)
+    # global engine
+    # engine = create_engine(db_conn)
 
     # global code_list
     # code_list = ts.get_stock_basics().index.tolist()
@@ -59,24 +55,26 @@ def init():
 #     for code in code_list:
 #         try:
 #
-#             getk1d_to_sql(engine, df_k1d, 'k1d')
+#             getk1d(engine, df_k1d, 'k1d')
 #         except BaseException as e:
 #             logger.exception(e)
 
 def save_multi():
     try:
         cpu_count = multiprocessing.cpu_count()
-        pool = multiprocessing.Pool(processes=cpu_count, initializer=init)
+        pool = multiprocessing.Pool(processes=2, initializer=init)
         code_list = ts.get_stock_basics().index.tolist()
+        #code_list = [str(i) for i in range(50)]
+        #code_list = ['000001', '002325', '600000']
         #logger.info("code_list:%s", code_list)
-        pool.map(getk1d_to_sql, code_list)
+        df = pd.concat(pool.map(getk1d, code_list))
+        logging.info("ret:%s", df)
 
-        # global logger
-        # logger.info("Started processes")
-        #pool.terminate()
+        engine = create_engine(db_conn)
+        df.to_sql('k1d', engine, if_exists='append')
+
         pool.close()
         pool.join()
-        # logger.info("Subprocess done.")
 
     except BaseException as e:
         print(e)
