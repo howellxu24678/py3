@@ -10,7 +10,7 @@ import time
 start_date = '2014-12-31'
 baseconfdir = "config"
 loggingconf = "logging.config"
-db_conn = 'sqlite:///test2.db'
+db_conn = 'sqlite:///fliter.db'
 engine = create_engine(db_conn, echo=True)
 
 log_path = os.path.join(os.getcwd(), 'log')
@@ -54,7 +54,7 @@ def update_profit():
     df_profit.set_index(['code', 'year'], inplace=True)
     df_profit.to_sql('profit', engine, if_exists='replace')
 
-def run():
+def save_k1d():
     try:
         df_base = ts.get_stock_basics()
         code_list = df_base.index.tolist()
@@ -76,7 +76,11 @@ def read():
     pd.read_sql('k1d', engine)
 
 if __name__ == '__main__':
-    run()
+    save_k1d()
+    update_base()
+    update_profit()
+
+
 
 '''
 import os
@@ -91,4 +95,6 @@ import pandas as pd
 
 df_base = ts.get_stock_basics()
 df_base.to_sql('base', engine, if_exists='append')
+
+select strftime('%Y-%m-%d', datetime('now','-10 day','start of day'))
 '''
