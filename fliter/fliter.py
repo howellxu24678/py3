@@ -97,4 +97,5 @@ df_base = ts.get_stock_basics()
 df_base.to_sql('base', engine, if_exists='append')
 
 select strftime('%Y-%m-%d', datetime('now','-10 day','start of day'))
+select strftime('%Y-%m-%d', datetime('now','-10 day','start of day'))
 '''
